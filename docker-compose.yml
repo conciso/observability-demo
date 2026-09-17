@@ -1,0 +1,179 @@
+# Projektname explizit fixiert, damit Netzwerk-/Volume-/Container-Namen stabil
+# bleiben, obwohl die Compose-Datei jetzt im Projektwurzel liegt (sonst würde der
+# Default-Projektname vom Ordnernamen abgeleitet). Netzwerk bleibt "monitoring_monitoring".
+name: monitoring
+
+networks:
+  monitoring:
+    driver: bridge
+
+volumes:
+  prometheus_data:
+  grafana_data:
+  loki_data:
+  tempo_data:
+
+services:
+  prometheus:
+    image: prom/prometheus:v3.14.0
+    container_name: prometheus
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./monitoring/rules:/etc/prometheus/rules
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+    ports:
+      - "9090:9090"
+    networks:
+      - monitoring
+    restart: unless-stopped
+
+  loki:
+    image: grafana/loki:3.7.7
+    container_name: loki
+    ports:
+      - "3100:3100"
+    volumes:
+      - ./monitoring/loki-config.yaml:/etc/loki/local-config.yaml
+      - loki_data:/loki
+    command: -config.file=/etc/loki/local-config.yaml
+    networks:
+      - monitoring
+    restart: unless-stopped
+
+  # Trace-Backend fuer OTLP-Traces aus dem Collector
+  tempo:
+    image: grafana/tempo:3.0.0
+    container_name: tempo
+    command:
+      - '-config.file=/etc/tempo.yaml'
+    volumes:
+      - ./monitoring/tempo.yaml:/etc/tempo.yaml
+      - tempo_data:/var/tempo
+    ports:
+      - "3200:3200"
+    networks:
+      - monitoring
+    restart: unless-stopped
+
+  # Zentrale Telemetrie-Pipeline (Metriken/Logs/Traces)
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.160.0
+    container_name: otel-collector
+    command:
+      - '--config=/etc/otel-collector-config.yaml'
+    volumes:
+      - ./monitoring/otel-collector-config.yaml:/etc/otel-collector-config.yaml
+    ports:
+      - "4317:4317" # OTLP gRPC
+      - "4318:4318" # OTLP HTTP
+    networks:
+      - monitoring
+    depends_on:
+      - tempo
+      - loki
+    restart: unless-stopped
+
+  # VM-Host-Hardware-Metriken (misst die VM, nicht den Container)
+  node-exporter:
+    image: prom/node-exporter:v1.12.1
+    container_name: node-exporter
+    command:
+      - '--path.rootfs=/host'
+      - '--path.procfs=/host/proc'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    pid: host
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/host:ro,rslave
+    ports:
+      - "9100:9100"
+    networks:
+      - monitoring
+    restart: unless-stopped
+
+  # Container-Ressourcen-Metriken
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.55.1
+    container_name: cadvisor
+    privileged: true
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+    ports:
+      - "8080:8080"
+    networks:
+      - monitoring
+    restart: unless-stopped
+
+  # Spring-Boot Bestell-Backend (OTel-Java-Agent -> Collector)
+  backend:
+    build:
+      context: ./backend
+    container_name: backend
+    ports:
+      - "8081:8081"
+    environment:
+      - OTEL_SERVICE_NAME=food-order-backend
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+      - OTEL_EXPORTER_OTLP_PROTOCOL=grpc
+      - OTEL_TRACES_EXPORTER=otlp
+      - OTEL_LOGS_EXPORTER=otlp
+      - OTEL_METRICS_EXPORTER=none # Metriken laufen ueber Prometheus-Scrape von /actuator/prometheus
+      - OTEL_RESOURCE_ATTRIBUTES=service.namespace=food-order,deployment.environment=demo
+    networks:
+      - monitoring
+    depends_on:
+      - otel-collector
+    restart: unless-stopped
+
+  # Angular-Frontend (nginx, /api -> backend:8081)
+  frontend:
+    build:
+      context: ./frontend
+    container_name: frontend
+    ports:
+      - "8082:80"
+    networks:
+      - monitoring
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+  alloy:
+    image: grafana/alloy:v1.19.2
+    container_name: alloy
+    volumes:
+      - ./monitoring/alloy-config.alloy:/etc/alloy/config.alloy:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro # Mapped den Docker-Socket
+    command: run --storage.path=/var/lib/alloy/data /etc/alloy/config.alloy
+    networks:
+      - monitoring
+    depends_on:
+      - loki
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:13.2.1
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    networks:
+      - monitoring
+    depends_on:
+      - prometheus
+      - loki
+      - tempo
+    restart: unless-stopped

@@ -1,0 +1,20 @@
+<div class="confirmation" data-testid="order-confirmation">
+  <div class="check">✓</div>
+  <h2>Vielen Dank fuer Ihre Bestellung!</h2>
+  <dl class="details">
+    <dt>Bestell-Nr.</dt>
+    <dd data-testid="order-id">#{{ order().id }}</dd>
+    <dt>Status</dt>
+    <dd data-testid="order-status">{{ order().status }}</dd>
+    <dt>Gesamtsumme</dt>
+    <dd data-testid="order-total">{{ order().totalCents | euro }}</dd>
+  </dl>
+  <button
+    type="button"
+    class="btn btn-primary"
+    data-testid="new-order"
+    (click)="newOrder.emit()"
+  >
+    Neue Bestellung
+  </button>
+</div>

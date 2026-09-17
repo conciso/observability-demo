@@ -1,0 +1,7 @@
+plugins {
+    // Allows Gradle to auto-provision the required Java 25 toolchain via the Foojay API
+    // when no local JDK 25 is available (requires network access on first run).
+    id 'org.gradle.toolchains.foojay-resolver-convention' version '1.0.0'
+}
+
+rootProject.name = 'food-order-backend'

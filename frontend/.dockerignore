@@ -1,0 +1,10 @@
+node_modules
+dist
+out-tsc
+.angular
+.git
+.gitignore
+*.log
+Dockerfile
+.dockerignore
+README.md

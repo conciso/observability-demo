@@ -1,0 +1,18 @@
+// Suche nach lokalen Docker-Containern
+discovery.docker "local_containers" {
+  host = "unix:///var/run/docker.sock"
+}
+
+// Lese die Logs der gefundenen Docker-Container aus
+loki.source.docker "docker_logs" {
+  host       = "unix:///var/run/docker.sock" // Docker-Socket (in aktuellen Alloy-Versionen Pflichtattribut)
+  targets    = discovery.docker.local_containers.targets
+  forward_to = [loki.write.local_loki.receiver]
+}
+
+// Sende die gesammelten Logs an die Loki-Instanz
+loki.write "local_loki" {
+  endpoint {
+    url = "http://loki:3100/loki/api/v1/push"
+  }
+}

@@ -1,0 +1,44 @@
+<header class="app-header">
+  <h1>Lebensmittel-Bestellung</h1>
+  <p class="subtitle">OpenTelemetry-Demo</p>
+</header>
+
+<main class="layout">
+  @if (confirmedOrder(); as order) {
+    <section class="panel" aria-label="Bestellbestaetigung">
+      <app-order-confirmation
+        [order]="order"
+        (newOrder)="startNewOrder()"
+      />
+    </section>
+  } @else {
+    <section class="panel products" aria-label="Produkte">
+      <h2>Produkte</h2>
+
+      @if (productsLoading()) {
+        <p class="status" data-testid="products-loading">Produkte werden geladen…</p>
+      } @else if (productsError(); as error) {
+        <div class="alert error" role="alert" data-testid="products-error">
+          <span>{{ error }}</span>
+          <button type="button" class="btn" (click)="loadProducts()">
+            Erneut versuchen
+          </button>
+        </div>
+      } @else {
+        <app-product-list [products]="products()" (add)="addToCart($event)" />
+      }
+    </section>
+
+    <aside class="panel cart" aria-label="Warenkorb">
+      <h2>Warenkorb</h2>
+
+      @if (orderError(); as error) {
+        <div class="alert error" role="alert" data-testid="order-error">
+          {{ error }}
+        </div>
+      }
+
+      <app-cart [submitting]="submitting()" (checkout)="checkout($event)" />
+    </aside>
+  }
+</main>

@@ -1,0 +1,54 @@
+plugins {
+    id 'java'
+    id 'org.springframework.boot' version '4.1.1'
+    id 'io.spring.dependency-management' version '1.1.7'
+}
+
+group = 'com.example'
+version = '0.0.1-SNAPSHOT'
+description = 'OpenTelemetry demo - food order backend service'
+
+java {
+    toolchain {
+        // Java 25 (LTS) as mandated by PLANUNG.md section 6.
+        languageVersion = JavaLanguageVersion.of(25)
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    // --- Web / REST ---
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+
+    // --- Persistence (JPA + H2 in-memory + Flyway schema management) ---
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    // Spring Boot 4 modularized its auto-configuration: Flyway's auto-configuration now
+    // lives in the dedicated 'spring-boot-flyway' module and is NOT pulled in by
+    // flyway-core alone. Without it Flyway silently never runs and Hibernate 'validate'
+    // then fails with "missing table". H2 support is bundled inside flyway-core itself
+    // (there is no separate flyway-database-h2 module).
+    implementation 'org.springframework.boot:spring-boot-flyway'
+    implementation 'org.flywaydb:flyway-core'
+    runtimeOnly 'com.h2database:h2'
+
+    // --- Observability (Actuator + Micrometer Prometheus registry) ---
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
+    implementation 'io.micrometer:micrometer-registry-prometheus'
+
+    // --- Test ---
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    // Observability tests (versions managed by the Spring Boot BOM):
+    testImplementation 'io.micrometer:micrometer-observation-test'      // TestObservationRegistry
+    testImplementation 'io.micrometer:micrometer-tracing-test'          // SampleTestRunner, SpansAssert
+    testImplementation 'io.micrometer:micrometer-tracing-bridge-otel'   // Observation -> OTel span bridge
+    testImplementation 'io.opentelemetry:opentelemetry-sdk-testing'     // InMemorySpanExporter
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+}

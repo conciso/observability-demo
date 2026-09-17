@@ -1,0 +1,53 @@
+# Zentrale OpenTelemetry-Collector-Pipeline (Metriken, Logs, Traces)
+receivers:
+  # OTLP-Empfaenger fuer Telemetrie aus den Anwendungen (gRPC + HTTP)
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+processors:
+  # Verwirft Traces der Actuator-Endpunkte (v.a. der 15s-Scrape auf
+  # /actuator/prometheus und die Health-Probes). Diese Spans sind reines
+  # Infrastruktur-Rauschen und machten sonst ~95% aller Traces in Tempo aus.
+  # Es sind Einzel-Span-Traces ohne Kinder, es bleiben also keine Waisen zurueck.
+  filter/actuator:
+    error_mode: ignore
+    traces:
+      span:
+        - 'IsMatch(attributes["url.path"], "^/actuator")'
+  # Buendelt Telemetrie fuer effizienteren Export
+  batch: {}
+  # Reichert Telemetrie mit Ressourcen-Attributen aus Umgebung und Host an
+  resourcedetection:
+    detectors: [env, system]
+
+exporters:
+  # Traces -> Tempo (OTLP/gRPC)
+  otlp/tempo:
+    endpoint: tempo:4317
+    tls:
+      insecure: true
+  # Logs -> Loki (natives OTLP-HTTP-Ingest)
+  otlphttp/loki:
+    endpoint: http://loki:3100/otlp
+  # Metriken -> vom Collector exponierter /metrics-Endpoint, den Prometheus scrapt
+  prometheus:
+    endpoint: 0.0.0.0:8889
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [filter/actuator, batch, resourcedetection]
+      exporters: [otlp/tempo]
+    metrics:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [prometheus]
+    logs:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [otlphttp/loki]

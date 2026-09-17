@@ -1,0 +1,32 @@
+# Loki-Konfiguration – monolithisch (single-binary), natives OTLP-Ingest aktiv
+auth_enabled: false
+
+server:
+  http_listen_port: 3100
+
+common:
+  path_prefix: /loki
+  replication_factor: 1
+  ring:
+    kvstore:
+      store: inmemory
+  storage:
+    filesystem:
+      chunks_directory: /loki/chunks
+      rules_directory: /loki/rules
+
+schema_config:
+  configs:
+    - from: 2024-01-01
+      store: tsdb
+      object_store: filesystem
+      schema: v13
+      index:
+        prefix: index_
+        period: 24h
+
+limits_config:
+  # Notwendig fuer OTLP-Ingest (strukturierte Metadaten aus OTLP-Attributen)
+  allow_structured_metadata: true
+  # Aktiviert die Volume-API (z.B. fuer Grafana Log-Volumen-Anzeige)
+  volume_enabled: true

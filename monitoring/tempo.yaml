@@ -1,0 +1,55 @@
+# Tempo-Konfiguration – Trace-Backend fuer die Demo (Tempo 3.x)
+#
+# Tempo 3.0 hat die Architektur umgebaut: ingester und compactor gibt es nicht
+# mehr, an ihre Stelle treten live-store (haelt frische Traces und schreibt
+# Bloecke) sowie backend-scheduler/-worker. Im monolithischen Modus
+# (target: all, der Default) wird KEIN Kafka benoetigt - der Distributor
+# uebergibt direkt an den live-store. Es gibt hier deshalb auch nichts aus
+# 2.x zu migrieren; die Sektionen unten sind bewusst gesetzte Defaults.
+server:
+  http_listen_port: 3200
+
+# OTLP-Empfaenger (gRPC + HTTP) fuer eingehende Traces vom Collector
+distributor:
+  receivers:
+    otlp:
+      protocols:
+        grpc:
+          endpoint: 0.0.0.0:4317
+        http:
+          endpoint: 0.0.0.0:4318
+
+# Der live-store beantwortet Abfragen auf frische Traces und schreibt sie in
+# Bloecke. Beide Werte weichen bewusst vom Default ab:
+live_store:
+  # Default 30s. Bei 30s entsteht alle halbe Minute ein Block - in dieser Demo
+  # hatten sich so ueber 11.000 Bloecke angesammelt, was den Aufbau des
+  # Tenant-Index (siehe unten) zum Erliegen brachte. 5m reduziert das um den
+  # Faktor 10, ohne die Demo spuerbar zu verzoegern.
+  max_block_duration: 5m
+  # Default 20m. Fenster, in dem ein Trace noch aus dem live-store beantwortet
+  # wird. Muss sicher laenger sein als max_block_duration + blocklist_poll,
+  # sonst entsteht eine Luecke, in der ein Trace WEDER im live-store NOCH in
+  # der Blockliste steht und Abfragen 404 liefern.
+  complete_block_timeout: 30m
+
+storage:
+  trace:
+    backend: local
+    local:
+      path: /var/tempo/blocks
+    wal:
+      path: /var/tempo/wal
+    # Wie oft die Blockliste (Tenant-Index) neu eingelesen wird. Default 5m;
+    # 1m macht neu geschriebene Bloecke schneller abfragbar und haelt die
+    # Luecke zum live-store klein.
+    blocklist_poll: 1m
+    # DER entscheidende Wert: Default ist 0s = "akzeptiere den Tenant-Index,
+    # egal wie alt er ist". Schlaegt das Schreiben des Index fehl, benutzt
+    # Tempo den veralteten Stand dauerhaft weiter - Abfragen finden dann nur
+    # noch, was im live-store liegt (Minuten), obwohl auf der Platte Bloecke
+    # mit Wochen an Traces liegen. Genau dieser Fall ist hier aufgetreten:
+    # der Index war ueber eine Woche eingefroren. Mit 15m verwirft Tempo einen
+    # veralteten Index und scannt die Bloecke selbst neu (poll_fallback) - die
+    # Konfiguration heilt sich damit selbst.
+    blocklist_poll_stale_tenant_index: 15m

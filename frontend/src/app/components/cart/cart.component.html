@@ -1,0 +1,82 @@
+@if (isEmpty()) {
+  <p class="empty" data-testid="cart-empty">Der Warenkorb ist leer.</p>
+} @else {
+  <ul class="cart-items" data-testid="cart-items">
+    @for (item of items(); track item.product.id) {
+      <li class="cart-item">
+        <div class="cart-item-info">
+          <span class="cart-item-name">{{ item.product.name }}</span>
+          <span class="cart-item-price">
+            {{ item.product.priceCents | euro }}
+          </span>
+        </div>
+        <div class="cart-item-controls">
+          <button
+            type="button"
+            class="qty-btn"
+            aria-label="Menge verringern"
+            data-testid="qty-decrement"
+            (click)="decrement(item.product.id)"
+          >
+            −
+          </button>
+          <span class="qty" data-testid="qty">{{ item.quantity }}</span>
+          <button
+            type="button"
+            class="qty-btn"
+            aria-label="Menge erhoehen"
+            data-testid="qty-increment"
+            (click)="increment(item.product.id)"
+          >
+            +
+          </button>
+          <span class="line-total">
+            {{ item.product.priceCents * item.quantity | euro }}
+          </span>
+          <button
+            type="button"
+            class="remove-btn"
+            aria-label="Position entfernen"
+            data-testid="cart-remove"
+            (click)="remove(item.product.id)"
+          >
+            Entfernen
+          </button>
+        </div>
+      </li>
+    }
+  </ul>
+
+  <div class="cart-summary">
+    <span>Zwischensumme ({{ totalQuantity() }} Artikel)</span>
+    <strong data-testid="cart-subtotal">{{ subtotalCents() | euro }}</strong>
+  </div>
+
+  <form class="checkout" (ngSubmit)="submit()">
+    <label class="field">
+      <span>Name</span>
+      <input
+        type="text"
+        name="customerName"
+        placeholder="Ihr Name"
+        autocomplete="name"
+        data-testid="customer-name"
+        [ngModel]="customerName()"
+        (ngModelChange)="customerName.set($event)"
+        [disabled]="submitting()"
+      />
+    </label>
+    <button
+      type="submit"
+      class="btn btn-primary"
+      data-testid="submit-order"
+      [disabled]="!canSubmit() || submitting()"
+    >
+      @if (submitting()) {
+        Bestellung wird gesendet…
+      } @else {
+        Bestellung absenden
+      }
+    </button>
+  </form>
+}

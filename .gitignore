@@ -1,0 +1,26 @@
+# macOS
+.DS_Store
+**/.DS_Store
+
+# Claude Code (lokale Agenten-/Skill-Konfiguration)
+.claude/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# Python-Testartefakte der Observability-Suite
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Interne Planungs- und Konzeptdokumente: bewusst nicht im oeffentlichen Repo.
+# Veroeffentlicht werden nur README.md, ARCHITECTURE-TESTS.md und
+# TELEMETRY-BLACKBOX-TESTKATALOG.md.
+/PLANUNG.md
+/TELEMETRY-BLACKBOX-TESTPLAN.md
+/TELEMETRY-COVERAGE-PLAN.md
+
+# Build-Artefakte von backend/ und frontend/ deckt je eine eigene .gitignore ab
+# (Gradle- bzw. Angular-Konvention).

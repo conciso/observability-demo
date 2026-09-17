@@ -1,0 +1,17 @@
+# Lokales Override für Docker Desktop (Mac/Windows).
+# Docker Compose merged diese Datei automatisch über docker-compose.yml.
+#
+# Grund: node-exporter mountet das Host-Root in der Haupt-Compose mit Mount-
+# Propagation `rslave` (auf einem Linux-Host korrekt & empfohlen). Auf Docker
+# Desktop ist das VM-`/` aber kein shared/slave-Mount → der Container startet nicht
+# ("path / is mounted on / but it is not a shared or slave mount").
+#
+# Hier werden die node-exporter-Volumes ohne `rslave` neu definiert (Merge per
+# Zielpfad). Auf dem echten Linux-Ziel-Host diese Datei einfach NICHT verwenden
+# (z.B. `docker compose -f docker-compose.yml up -d`), damit dort `rslave` greift.
+services:
+  node-exporter:
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/host:ro

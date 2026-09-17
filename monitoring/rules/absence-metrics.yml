@@ -1,0 +1,77 @@
+# ---------------------------------------------------------------------------
+# Demo-Szenario "verschwundene Metriken".
+#
+# Kernaussage der Demo: Eine Metrik, die nicht mehr geliefert wird, sieht auf
+# Dashboards aus wie "alles ruhig" - das Panel ist leer oder zeigt 0. Erst eine
+# explizit formulierte ERWARTUNG macht daraus ein Signal. Genau das sind die
+# Regeln hier.
+#
+# Die Zeitfenster sind bewusst demo-kurz (2m/1m) gewaehlt, damit ein Alarm
+# waehrend einer Vorfuehrung sichtbar wird. In Produktion waeren eher
+# [10m] + 'for: 5m' angemessen, um Scrape-Aussetzer zu ueberbruecken.
+#
+# Ohne Alertmanager (in diesem Stack nicht enthalten) werden die Alarme nicht
+# zugestellt, sind aber sichtbar unter http://localhost:9090/alerts sowie in
+# der API unter /api/v1/rules und /api/v1/alerts.
+# ---------------------------------------------------------------------------
+groups:
+  - name: metrik-abwesenheit
+    interval: 15s
+    rules:
+      # --- Fall 1: Die Metrik-Serie ist komplett verschwunden -----------------
+      # absent_over_time() liefert nur dann ein Ergebnis, wenn im gesamten
+      # Fenster KEIN einziger Datenpunkt der Serie existierte.
+      #
+      # Der Zusatz 'and on() up{job="backend"} == 1' ist der didaktisch
+      # wichtigste Teil: Er unterscheidet "die Instrumentierung ist weg"
+      # von "der ganze Service ist weg". Ohne ihn wuerde diese Regel bei
+      # jedem Backend-Neustart mitfeuern und die Aussage verwaessern.
+      - alert: BusinessMetrikOrdersCreatedFehlt
+        expr: absent_over_time(orders_created_total[2m]) and on() up{job="backend"} == 1
+        for: 1m
+        labels:
+          severity: critical
+          szenario: metrik-abwesenheit
+        annotations:
+          summary: "orders_created_total wird nicht mehr geliefert"
+          description: >-
+            Das Backend wird erfolgreich gescrapt (up == 1), liefert aber seit
+            mindestens 2 Minuten keine Serie orders_created_total mehr.
+            Wahrscheinliche Ursache: Instrumentierung entfernt, umbenannt oder
+            durch ein Refactoring/Upgrade verloren gegangen - KEIN Ausfall.
+
+      - alert: BusinessMetrikOrderValueFehlt
+        expr: absent_over_time(order_value_euros_count[2m]) and on() up{job="backend"} == 1
+        for: 1m
+        labels:
+          severity: critical
+          szenario: metrik-abwesenheit
+        annotations:
+          summary: "order_value_euros wird nicht mehr geliefert"
+          description: >-
+            Die DistributionSummary order_value_euros liefert keine Datenpunkte
+            mehr, obwohl das Backend gescrapt wird.
+
+      # --- Fall 2 (Kontrast): Die Serie ist da, bewegt sich aber nicht --------
+      # Dieser Alarm ist der Gegenpol zu Fall 1 und soll in der Demo BEWUSST
+      # feuern, wenn laengere Zeit nicht bestellt wurde. Er zeigt: "Wert 0" und
+      # "keine Daten" sind verschiedene Zustaende mit verschiedenen Ursachen.
+      # Beide sehen auf einem Dashboard-Panel nahezu gleich aus.
+      #
+      # orders_created_total und order_value_euros werden im Konstruktor von
+      # OrderMetrics bzw. in PrometheusBusinessMetricsConfig beim Start
+      # registriert. Die Serien existieren also ab Boot mit Wert 0 - deshalb
+      # schweigt Fall 1 hier korrekterweise.
+      - alert: KeineBestellungenTrotzVorhandenerMetrik
+        expr: rate(orders_created_total[5m]) == 0
+        for: 10m
+        labels:
+          severity: info
+          szenario: metrik-abwesenheit
+        annotations:
+          summary: "Seit 10 Minuten keine Bestellung - Metrik ist aber vorhanden"
+          description: >-
+            Die Serie orders_created_total wird geliefert, ihr Wert steigt aber
+            nicht. Das ist ein fachlicher Befund (kein Traffic), kein
+            Instrumentierungs-Defekt - im Gegensatz zu
+            BusinessMetrikOrdersCreatedFehlt.
