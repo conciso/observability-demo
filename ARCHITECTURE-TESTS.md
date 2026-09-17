@@ -1,9 +1,10 @@
 # Architektur & Test-Ansatzpunkte
 
-Grafische Übersicht der OpenTelemetry-Demo (basierend auf dem Diagramm in
-[`PLANUNG.md`](./PLANUNG.md)) mit den Stellen, an denen die einzelnen Tests ansetzen.
-Ergänzt die Testpläne [`TELEMETRY-BLACKBOX-TESTPLAN.md`](./TELEMETRY-BLACKBOX-TESTPLAN.md)
-und [`TELEMETRY-COVERAGE-PLAN.md`](./TELEMETRY-COVERAGE-PLAN.md).
+Grafische Übersicht der OpenTelemetry-Demo mit den Stellen, an denen die einzelnen
+Tests ansetzen. Welche Prüfungen davon tatsächlich umgesetzt sind, steht im
+[`TELEMETRY-BLACKBOX-TESTKATALOG.md`](./TELEMETRY-BLACKBOX-TESTKATALOG.md).
+Die zugrunde liegenden Testpläne und die ausführliche Entwurfsdokumentation werden
+projektintern gepflegt und sind nicht Teil dieses Repositories.
 
 ## Architektur mit Test-Ansatzpunkten
 

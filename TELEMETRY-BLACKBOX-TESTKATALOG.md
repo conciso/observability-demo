@@ -1,8 +1,9 @@
 # Testkatalog: Telemetrie als Black-Box – Umsetzungsstand
 
-> Kopie des Testkatalogs aus [`TELEMETRY-BLACKBOX-TESTPLAN.md`](TELEMETRY-BLACKBOX-TESTPLAN.md) (§3),
-> ergänzt um den **tatsächlichen Umsetzungsstand**. Der Testplan bleibt die fachliche Quelle;
-> diese Datei beantwortet nur die Frage „was ist davon gebaut?".
+> Kopie des Testkatalogs aus dem projektinternen Telemetrie-Black-Box-Testplan (§3),
+> ergänzt um den **tatsächlichen Umsetzungsstand**. Der Testplan bleibt die fachliche Quelle
+> und ist nicht Teil dieses Repositories; diese Datei beantwortet nur die Frage
+> „was ist davon gebaut?".
 >
 > Stand: 2026-09-16 · geprüft gegen drei Ebenen:
 > **BB** = Black-Box-Suiten `tests/observability/` (pytest) und `tests/observability-bash/`

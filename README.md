@@ -7,7 +7,10 @@ Trace↔Log-Korrelation. Der komplette Stack (App **und** Observability) läuft 
 **einem** `docker compose` auf **einem** Docker-Host – es wird **keine separate VM**
 benötigt.
 
-> Detaillierte Architektur- und Entwurfsentscheidungen: siehe [`PLANUNG.md`](./PLANUNG.md).
+> Architektur im Überblick, mit den Ansatzpunkten der Tests:
+> siehe [`ARCHITECTURE-TESTS.md`](./ARCHITECTURE-TESTS.md).
+> Die ausführlichen Entwurfsentscheidungen werden projektintern gepflegt und sind
+> nicht Teil dieses Repositories.
 
 ---
 
@@ -185,7 +188,8 @@ Der Schnellstart oben funktioniert auf **macOS/Windows (Docker Desktop)** und **
 ```
 .
 ├── README.md                     # dieses Dokument
-├── PLANUNG.md                    # Architektur & Entwurfsentscheidungen
+├── ARCHITECTURE-TESTS.md         # Architektur-Diagramm & Test-Ansatzpunkte
+├── TELEMETRY-BLACKBOX-TESTKATALOG.md  # Testkatalog mit Umsetzungsstand
 ├── docker-compose.yml            # alle Services (Einstiegspunkt)
 ├── docker-compose.override.yml   # Docker-Desktop-Anpassung (node-exporter)
 ├── monitoring/                   # Observability-Konfiguration
