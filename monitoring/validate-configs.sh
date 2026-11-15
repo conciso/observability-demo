@@ -20,11 +20,11 @@ cd "$(dirname "$0")" || exit 2
 # Versionen gepinnt: mit :latest validiert dieses Skript sonst gegen eine
 # andere Version als der Stack tatsaechlich faehrt - und ein Major-Upgrade
 # rutscht unbemerkt herein (siehe Tempo 2.x -> 3.0).
-IMG_PROM="prom/prometheus:v3.14.0"
-IMG_OTEL="otel/opentelemetry-collector-contrib:0.160.0"
-IMG_LOKI="grafana/loki:3.7.7"
-IMG_TEMPO="grafana/tempo:3.0.0"
-IMG_ALLOY="grafana/alloy:v1.19.2"
+IMG_PROM="prom/prometheus:v3.16.0"
+IMG_OTEL="otel/opentelemetry-collector-contrib:0.165.0"
+IMG_LOKI="grafana/loki:3.7.10"
+IMG_TEMPO="grafana/tempo:3.1.1"
+IMG_ALLOY="grafana/alloy:v1.22.0"
 
 # Ergebnis-Sammler.
 declare -a FAILED=()   # Pflicht-Checks, die fehlgeschlagen sind

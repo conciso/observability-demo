@@ -1,5 +1,5 @@
 # --- Build-Stage: Angular-App mit Node 24 bauen ---
-FROM node:24-alpine AS build
+FROM node:24.22.3-alpine AS build
 WORKDIR /app
 
 # Nur Manifeste kopieren -> reproduzierbare, cache-freundliche Installation
@@ -11,7 +11,7 @@ COPY . .
 RUN npm run build
 
 # --- Runtime-Stage: statische Artefakte via nginx ausliefern ---
-FROM nginx:alpine AS runtime
+FROM nginx:1.30.6-alpine AS runtime
 
 # Eigene nginx-Konfiguration (SPA-Fallback + /api-Proxy auf backend:8081)
 COPY nginx.conf /etc/nginx/conf.d/default.conf

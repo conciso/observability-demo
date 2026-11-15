@@ -25,7 +25,7 @@ GRAFANA_URL="${GRAFANA_URL%/}"
 
 HTTP_TIMEOUT=10
 SVC="food-order-backend"
-TELEMETRYGEN_IMAGE="ghcr.io/open-telemetry/opentelemetry-collector-contrib/telemetrygen"
+TELEMETRYGEN_IMAGE="ghcr.io/open-telemetry/opentelemetry-collector-contrib/telemetrygen:v0.165.0"
 
 # --- Ergebnis-Zaehler (analog validate-configs.sh) --------------------------
 PASS_N=0

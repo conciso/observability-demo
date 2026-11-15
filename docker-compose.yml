@@ -15,7 +15,7 @@ volumes:
 
 services:
   prometheus:
-    image: prom/prometheus:v3.14.0
+    image: prom/prometheus:v3.16.0
     container_name: prometheus
     volumes:
       - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
@@ -31,7 +31,7 @@ services:
     restart: unless-stopped
 
   loki:
-    image: grafana/loki:3.7.7
+    image: grafana/loki:3.7.10
     container_name: loki
     ports:
       - "3100:3100"
@@ -45,7 +45,7 @@ services:
 
   # Trace-Backend fuer OTLP-Traces aus dem Collector
   tempo:
-    image: grafana/tempo:3.0.0
+    image: grafana/tempo:3.1.1
     container_name: tempo
     command:
       - '-config.file=/etc/tempo.yaml'
@@ -60,7 +60,7 @@ services:
 
   # Zentrale Telemetrie-Pipeline (Metriken/Logs/Traces)
   otel-collector:
-    image: otel/opentelemetry-collector-contrib:0.160.0
+    image: otel/opentelemetry-collector-contrib:0.165.0
     container_name: otel-collector
     command:
       - '--config=/etc/otel-collector-config.yaml'
@@ -98,7 +98,8 @@ services:
 
   # Container-Ressourcen-Metriken
   cadvisor:
-    image: gcr.io/cadvisor/cadvisor:v0.55.1
+    # Neue Releases nur noch auf ghcr.io (gcr.io endet bei v0.55.1)
+    image: ghcr.io/google/cadvisor:v0.60.6
     container_name: cadvisor
     privileged: true
     volumes:
@@ -148,7 +149,7 @@ services:
     restart: unless-stopped
 
   alloy:
-    image: grafana/alloy:v1.19.2
+    image: grafana/alloy:v1.22.0
     container_name: alloy
     volumes:
       - ./monitoring/alloy-config.alloy:/etc/alloy/config.alloy:ro
@@ -161,7 +162,7 @@ services:
     restart: unless-stopped
 
   grafana:
-    image: grafana/grafana:13.2.1
+    image: grafana/grafana:13.3.1
     container_name: grafana
     ports:
       - "3000:3000"

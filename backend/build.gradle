@@ -1,6 +1,6 @@
 plugins {
     id 'java'
-    id 'org.springframework.boot' version '4.1.1'
+    id 'org.springframework.boot' version '4.1.2'
     id 'io.spring.dependency-management' version '1.1.7'
 }
 
@@ -19,9 +19,15 @@ repositories {
     mavenCentral()
 }
 
+configurations {
+    // Mockito's inline mock maker as an explicit -javaagent (JDK 21+ warns about, and future
+    // JDKs will block, dynamically attached agents).
+    mockitoAgent
+}
+
 dependencies {
     // --- Web / REST ---
-    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-webmvc'
     implementation 'org.springframework.boot:spring-boot-starter-validation'
 
     // --- Persistence (JPA + H2 in-memory + Flyway schema management) ---
@@ -43,12 +49,13 @@ dependencies {
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     // Observability tests (versions managed by the Spring Boot BOM):
     testImplementation 'io.micrometer:micrometer-observation-test'      // TestObservationRegistry
-    testImplementation 'io.micrometer:micrometer-tracing-test'          // SampleTestRunner, SpansAssert
     testImplementation 'io.micrometer:micrometer-tracing-bridge-otel'   // Observation -> OTel span bridge
     testImplementation 'io.opentelemetry:opentelemetry-sdk-testing'     // InMemorySpanExporter
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    mockitoAgent('org.mockito:mockito-core') { transitive = false }
 }
 
 tasks.named('test') {
     useJUnitPlatform()
+    jvmArgs += "-javaagent:${configurations.mockitoAgent.asPath}"
 }
