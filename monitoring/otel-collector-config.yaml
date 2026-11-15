@@ -9,12 +9,17 @@ receivers:
         endpoint: 0.0.0.0:4318
 
 processors:
+  # Schuetzt den Collector vor OOM: lehnt bei Speicherdruck neue Daten ab,
+  # statt abzustuerzen. Steht in jeder Pipeline an erster Stelle.
+  memory_limiter:
+    check_interval: 1s
+    limit_percentage: 80
+    spike_limit_percentage: 25
   # Verwirft Traces der Actuator-Endpunkte (v.a. der 15s-Scrape auf
   # /actuator/prometheus und die Health-Probes). Diese Spans sind reines
   # Infrastruktur-Rauschen und machten sonst ~95% aller Traces in Tempo aus.
   # Es sind Einzel-Span-Traces ohne Kinder, es bleiben also keine Waisen zurueck.
   filter/actuator:
-    error_mode: ignore
     traces:
       span:
         - 'IsMatch(attributes["url.path"], "^/actuator")'
@@ -26,12 +31,12 @@ processors:
 
 exporters:
   # Traces -> Tempo (OTLP/gRPC)
-  otlp/tempo:
+  otlp_grpc/tempo:
     endpoint: tempo:4317
     tls:
       insecure: true
   # Logs -> Loki (natives OTLP-HTTP-Ingest)
-  otlphttp/loki:
+  otlp_http/loki:
     endpoint: http://loki:3100/otlp
   # Metriken -> vom Collector exponierter /metrics-Endpoint, den Prometheus scrapt
   prometheus:
@@ -41,13 +46,13 @@ service:
   pipelines:
     traces:
       receivers: [otlp]
-      processors: [filter/actuator, batch, resourcedetection]
-      exporters: [otlp/tempo]
+      processors: [memory_limiter, filter/actuator, resourcedetection, batch]
+      exporters: [otlp_grpc/tempo]
     metrics:
       receivers: [otlp]
-      processors: [batch]
+      processors: [memory_limiter, batch]
       exporters: [prometheus]
     logs:
       receivers: [otlp]
-      processors: [batch]
-      exporters: [otlphttp/loki]
+      processors: [memory_limiter, batch]
+      exporters: [otlp_http/loki]

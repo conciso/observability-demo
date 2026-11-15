@@ -128,7 +128,7 @@ services:
       - OTEL_TRACES_EXPORTER=otlp
       - OTEL_LOGS_EXPORTER=otlp
       - OTEL_METRICS_EXPORTER=none # Metriken laufen ueber Prometheus-Scrape von /actuator/prometheus
-      - OTEL_RESOURCE_ATTRIBUTES=service.namespace=food-order,deployment.environment=demo
+      - OTEL_RESOURCE_ATTRIBUTES=service.namespace=food-order,deployment.environment.name=demo
     networks:
       - monitoring
     depends_on:

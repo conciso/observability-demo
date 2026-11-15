@@ -52,7 +52,8 @@ def test_b5_trace_dauer_plausibel(traffic, tempo_search, until):
 
 # --- B4: Span-/Resource-Attribute -------------------------------------------
 # Empirisch am laufenden Stack (opentelemetry-java-instrumentation 2.31.1)
-# bestimmte Keys. Resource: deployment.environment (NICHT ...environment.name),
+# bestimmte Keys. Resource: deployment.environment.name (aktuelle Semantic
+# Convention; das fruehere deployment.environment ist deprecated),
 # service.namespace, service.version, telemetry.sdk.language. HTTP-Span nutzt die
 # neue Semantic-Convention: http.request.method / http.response.status_code.
 
@@ -68,7 +69,7 @@ def test_b4_span_und_resource_attribute(traffic, tempo_search, urls, until, http
     resource_queries = [
         '{ resource.service.name = "food-order-backend" }',
         '{ resource.service.namespace = "food-order" }',
-        '{ resource.deployment.environment = "demo" }',
+        '{ resource.deployment.environment.name = "demo" }',
     ]
     for q in resource_queries:
         until(lambda q=q: tempo_search(q, limit=5), timeout=30,
@@ -112,7 +113,7 @@ def test_b4_span_und_resource_attribute(traffic, tempo_search, urls, until, http
 
     expected_resource = {
         "service.name", "service.namespace",
-        "deployment.environment", "telemetry.sdk.language",
+        "deployment.environment.name", "telemetry.sdk.language",
     }
     missing = expected_resource - resource_keys
     assert not missing, f"Resource-Keys fehlen: {missing} (vorhanden: {sorted(resource_keys)})"

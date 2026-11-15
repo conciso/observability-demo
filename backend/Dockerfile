@@ -27,18 +27,9 @@ ADD https://github.com/open-telemetry/opentelemetry-java-instrumentation/release
 
 COPY --from=build /workspace/build/libs/*.jar /app/app.jar
 
-# --- OpenTelemetry defaults (all overridable via docker-compose) ---
-# Traces + logs are exported via OTLP to the collector. Metrics are scraped from
-# /actuator/prometheus by Prometheus, so the agent's metric exporter is disabled to
-# avoid double collection (see PLANUNG.md sections 6 and 8).
+# The agent's OTEL_* settings (service name, OTLP endpoint, exporters, resource
+# attributes) live in docker-compose.yml only, so there is a single source of truth.
 ENV JAVA_TOOL_OPTIONS="-javaagent:/otel/opentelemetry-javaagent.jar"
-ENV OTEL_SERVICE_NAME=food-order-backend
-ENV OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
-ENV OTEL_EXPORTER_OTLP_PROTOCOL=grpc
-ENV OTEL_TRACES_EXPORTER=otlp
-ENV OTEL_LOGS_EXPORTER=otlp
-ENV OTEL_METRICS_EXPORTER=none
-ENV OTEL_RESOURCE_ATTRIBUTES=service.namespace=food-order,deployment.environment=demo
 
 EXPOSE 8081
 

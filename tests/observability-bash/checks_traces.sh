@@ -44,7 +44,7 @@ check_b5() {
 _b4_resource_filters() {
   _tempo_ge1 '{ resource.service.name = "food-order-backend" }' \
     && _tempo_ge1 '{ resource.service.namespace = "food-order" }' \
-    && _tempo_ge1 '{ resource.deployment.environment = "demo" }'
+    && _tempo_ge1 '{ resource.deployment.environment.name = "demo" }'
 }
 _b4_http_filters() {
   _tempo_ge1 '{ resource.service.name="food-order-backend" && span.http.request.method = "POST" }' \
@@ -58,7 +58,7 @@ _b4_deep_ok() {
   curl -s --max-time "$HTTP_TIMEOUT" "$TEMPO_URL/api/traces/$tid" | jq -e '
     ([.batches[].resource.attributes[].key]) as $rk
     | ([.batches[].scopeSpans[].spans[].attributes[]?.key]) as $sk
-    | ((["service.name","service.namespace","deployment.environment","telemetry.sdk.language"] - $rk) | length == 0)
+    | ((["service.name","service.namespace","deployment.environment.name","telemetry.sdk.language"] - $rk) | length == 0)
       and (($sk | index("http.request.method")) != null)
       and (($sk | index("http.response.status_code")) != null)
   ' >/dev/null
