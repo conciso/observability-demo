@@ -38,16 +38,17 @@ check_f2() {
     fi
   done
   # Datasource-Health je uid – tolerant (nur pruefen, falls Endpoint 200 liefert).
-  local uid hcode status
+  local uid hcode status body
+  body=$(mktemp)
   for uid in prometheus loki tempo; do
-    hcode=$(curl -s -o /tmp/f2_ds_$$.json -w '%{http_code}' --max-time "$HTTP_TIMEOUT" \
+    hcode=$(curl -s -o "$body" -w '%{http_code}' --max-time "$HTTP_TIMEOUT" \
       -u "$GRAFANA_USER:$GRAFANA_PASS" "$GRAFANA_URL/api/datasources/uid/$uid/health")
     if [ "$hcode" = "200" ]; then
-      status=$(jq -r '.status // ""' /tmp/f2_ds_$$.json | tr 'a-z' 'A-Z')
+      status=$(jq -r '.status // ""' "$body" | tr 'a-z' 'A-Z')
       if [ "$status" != "OK" ]; then ok=0; fail "F2: Datasource $uid health status = $status"; fi
     fi
-    rm -f /tmp/f2_ds_$$.json
   done
+  rm -f "$body"
   [ "$ok" = 1 ] && pass "F2: Grafana healthy + Datasources prometheus/loki/tempo vorhanden"
 }
 

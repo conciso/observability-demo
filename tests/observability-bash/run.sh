@@ -91,15 +91,11 @@ generate_traffic() {
   fi
   # 2 gueltige Bestellungen mit eindeutigem Kunden.
   for i in 1 2; do
-    code=$(curl -s -o /dev/null -w '%{http_code}' --max-time "$HTTP_TIMEOUT" \
-      -X POST "$BACKEND_URL/api/orders" -H 'Content-Type: application/json' \
-      -d "{\"customerName\":\"$CUSTOMER\",\"items\":[{\"productId\":1,\"quantity\":2}]}")
+    code=$(post_order "$CUSTOMER" 1 2)
     [ "$code" = "201" ] || { printf "${C_RED}FEHLER:${C_OFF} gueltige Bestellung != 201 (war %s)\n" "$code" >&2; return 1; }
   done
   # 1 ungueltige Bestellung (productId 99999 -> 404).
-  code=$(curl -s -o /dev/null -w '%{http_code}' --max-time "$HTTP_TIMEOUT" \
-    -X POST "$BACKEND_URL/api/orders" -H 'Content-Type: application/json' \
-    -d "{\"customerName\":\"$CUSTOMER\",\"items\":[{\"productId\":99999,\"quantity\":1}]}")
+  code=$(post_order "$CUSTOMER" 99999 1)
   [ "$code" = "404" ] || { printf "${C_RED}FEHLER:${C_OFF} ungueltige Bestellung != 404 (war %s)\n" "$code" >&2; return 1; }
   # Ein paar Lese-Requests.
   curl -s -o /dev/null --max-time "$HTTP_TIMEOUT" "$BACKEND_URL/api/products"

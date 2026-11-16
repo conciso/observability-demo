@@ -54,9 +54,7 @@ check_a4() {
   # Bestellung im Test. Eine ungueltige Bestellung darf den Zaehler nicht erhoehen.
   local v0 v1 code
   v0=$(actuator_orders_total)
-  code=$(curl -s -o /dev/null -w '%{http_code}' --max-time "$HTTP_TIMEOUT" \
-    -X POST "$BACKEND_URL/api/orders" -H 'Content-Type: application/json' \
-    -d '{"customerName":"a4-invalid","items":[{"productId":99999,"quantity":1}]}')
+  code=$(post_order "a4-invalid" 99999 1)
   if [ "$code" != "404" ]; then
     fail "A4: ungueltige Bestellung erwartet 404" "war $code"
     return 0
