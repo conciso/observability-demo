@@ -12,16 +12,16 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.RestClient;
 
 /**
- * Test type 4 - Actuator / web-slice test.
+ * Test type 4 - Actuator test against the full application.
  *
  * <p>Runs the full application on a random port (so the real {@code ServerHttpObservationFilter}
  * is in the request path) and verifies that {@code /actuator/prometheus} returns 200 and exposes
- * both the auto-instrumented HTTP server metrics and the business metrics, after an endpoint has
- * been called.
+ * the auto-instrumented HTTP server metric for the endpoint that was called, plus the business
+ * metrics.
  *
- * <p>Note: Spring Boot 4 removed {@code @AutoConfigureObservability} and {@code TestRestTemplate};
- * using a real server ({@code RANDOM_PORT}) with a {@link RestClient} is the idiomatic replacement
- * that guarantees HTTP server observations are recorded.
+ * <p>A plain {@link RestClient} against the real server is used instead of
+ * {@code TestRestTemplate}, which in Spring Boot 4 lives in the separate
+ * {@code spring-boot-resttestclient} module.
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 class ActuatorPrometheusMetricsTest {
@@ -48,10 +48,15 @@ class ActuatorPrometheusMetricsTest {
         assertThat(scrape.getStatusCode()).isEqualTo(HttpStatus.OK);
         String body = scrape.getBody();
         assertThat(body).isNotNull();
-        // Auto-instrumented HTTP server metric (Micrometer/Observation).
-        assertThat(body).contains("http_server_requests_seconds");
-        // Business metrics under their exact names.
-        assertThat(body).contains("orders_created_total");
-        assertThat(body).contains("order_value_euros_count");
+        // Auto-instrumented HTTP server metric for exactly the request made above. A plain
+        // "contains" would also match the scrape request itself or the # HELP line.
+        assertThat(body.lines())
+                .anyMatch(line -> line.startsWith("http_server_requests_seconds_count{")
+                        && line.contains("uri=\"/api/products\"")
+                        && line.contains("status=\"200\""));
+        // Business metrics under their exact names (as samples, not just in # HELP/# TYPE).
+        assertThat(body.lines())
+                .anyMatch(line -> line.startsWith("orders_created_total "))
+                .anyMatch(line -> line.startsWith("order_value_euros_count "));
     }
 }

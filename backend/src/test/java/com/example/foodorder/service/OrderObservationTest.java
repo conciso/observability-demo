@@ -1,16 +1,16 @@
 package com.example.foodorder.service;
 
-import static org.mockito.ArgumentMatchers.any;
+import static com.example.foodorder.service.OrderFixtures.TWO_ITEM_ORDER_TOTAL_CENTS;
+import static com.example.foodorder.service.OrderFixtures.stubTwoItemOrder;
+import static com.example.foodorder.service.OrderFixtures.twoItemOrder;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.when;
 
-import com.example.foodorder.domain.Order;
-import com.example.foodorder.domain.Product;
 import com.example.foodorder.repository.OrderRepository;
 import com.example.foodorder.repository.ProductRepository;
 import com.example.foodorder.service.exception.ProductNotFoundException;
 import com.example.foodorder.web.dto.CreateOrderRequest;
 import com.example.foodorder.web.dto.OrderItemRequest;
-import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import io.micrometer.observation.tck.TestObservationRegistry;
 import io.micrometer.observation.tck.TestObservationRegistryAssert;
 import java.util.List;
@@ -41,29 +41,18 @@ class OrderObservationTest {
     private TestObservationRegistry observationRegistry;
     private OrderService orderService;
 
-    private final Product pizza = new Product("Pizza Margherita", "Classic", 899, "Food");
-    private final Product water = new Product("Sparkling Water", "0.5l", 150, "Drinks");
-
     @BeforeEach
     void setUp() {
         observationRegistry = TestObservationRegistry.create();
-        OrderMetrics orderMetrics = new OrderMetrics(new SimpleMeterRegistry());
-        orderService = new OrderService(orderRepository, productRepository, orderMetrics,
-                observationRegistry);
+        orderService = OrderFixtures.orderService(orderRepository, productRepository, observationRegistry);
     }
 
     @Test
     @DisplayName("creates an 'orders.create' observation with business key-values")
     void createsOrdersCreateObservation() {
-        when(orderRepository.save(any(Order.class))).thenAnswer(inv -> inv.getArgument(0));
-        when(productRepository.findById(1L)).thenReturn(Optional.of(pizza));
-        when(productRepository.findById(2L)).thenReturn(Optional.of(water));
-        // 2 line items -> item_count=2; 2x899 + 3x150 = 2248 cents
-        CreateOrderRequest request = new CreateOrderRequest("Ada", List.of(
-                new OrderItemRequest(1L, 2),
-                new OrderItemRequest(2L, 3)));
+        stubTwoItemOrder(orderRepository, productRepository);
 
-        orderService.createOrder(request);
+        orderService.createOrder(twoItemOrder());
 
         TestObservationRegistryAssert.assertThat(observationRegistry)
                 .hasNumberOfObservationsEqualTo(1)
@@ -73,7 +62,7 @@ class OrderObservationTest {
                 .hasBeenStopped()
                 .doesNotHaveError()
                 .hasLowCardinalityKeyValue("order.item_count", "2")
-                .hasHighCardinalityKeyValue("order.value_cents", "2248");
+                .hasHighCardinalityKeyValue("order.value_cents", Long.toString(TWO_ITEM_ORDER_TOTAL_CENTS));
     }
 
     @Test
@@ -83,11 +72,9 @@ class OrderObservationTest {
         CreateOrderRequest request = new CreateOrderRequest(
                 "Ada", List.of(new OrderItemRequest(99L, 1)));
 
-        try {
-            orderService.createOrder(request);
-        } catch (ProductNotFoundException expected) {
-            // expected - the observation must still be recorded and flagged with the error
-        }
+        // The exception must still propagate; the observation is recorded and flagged with it.
+        assertThatThrownBy(() -> orderService.createOrder(request))
+                .isInstanceOf(ProductNotFoundException.class);
 
         TestObservationRegistryAssert.assertThat(observationRegistry)
                 .hasSingleObservationThat()

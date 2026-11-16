@@ -1,12 +1,17 @@
 package com.example.foodorder.service;
 
+import static com.example.foodorder.service.OrderFixtures.PIZZA_ID;
+import static com.example.foodorder.service.OrderFixtures.TWO_ITEM_ORDER_TOTAL_CENTS;
+import static com.example.foodorder.service.OrderFixtures.pizza;
+import static com.example.foodorder.service.OrderFixtures.stubProducts;
+import static com.example.foodorder.service.OrderFixtures.stubSaveReturnsArgument;
+import static com.example.foodorder.service.OrderFixtures.stubTwoItemOrder;
+import static com.example.foodorder.service.OrderFixtures.twoItemOrder;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
+import static org.assertj.core.api.Assertions.within;
 import static org.mockito.Mockito.when;
 
-import com.example.foodorder.domain.Order;
-import com.example.foodorder.domain.Product;
 import com.example.foodorder.repository.OrderRepository;
 import com.example.foodorder.repository.ProductRepository;
 import com.example.foodorder.service.exception.ProductNotFoundException;
@@ -20,6 +25,7 @@ import io.micrometer.observation.ObservationRegistry;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import org.assertj.core.data.Offset;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -29,6 +35,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 class OrderServiceTest {
+
+    /** Euro values are doubles derived from cents; compare them with a tolerance. */
+    private static final Offset<Double> EURO_TOLERANCE = within(1e-9);
 
     @Mock
     private OrderRepository orderRepository;
@@ -40,9 +49,6 @@ class OrderServiceTest {
     private OrderMetrics orderMetrics;
     private OrderService orderService;
 
-    private final Product pizza = new Product("Pizza Margherita", "Classic", 899, "Food");
-    private final Product water = new Product("Sparkling Water", "0.5l", 150, "Drinks");
-
     @BeforeEach
     void setUp() {
         meterRegistry = new SimpleMeterRegistry();
@@ -53,34 +59,20 @@ class OrderServiceTest {
                 ObservationRegistry.NOOP);
     }
 
-    /** orderRepository.save returns the order as-is (persistence is not under test here). */
-    private void stubSaveReturnsArgument() {
-        when(orderRepository.save(any(Order.class))).thenAnswer(inv -> inv.getArgument(0));
-    }
-
-    private void stubProducts(Map<Long, Product> products) {
-        products.forEach((id, product) ->
-                when(productRepository.findById(id)).thenReturn(Optional.of(product)));
-    }
-
     @Test
     @DisplayName("computes line and total prices server-side from the current catalog")
     void computesTotalFromCatalog() {
-        stubSaveReturnsArgument();
-        stubProducts(Map.of(1L, pizza, 2L, water));
-        CreateOrderRequest request = new CreateOrderRequest("Ada", List.of(
-                new OrderItemRequest(1L, 2),   // 2 x 899 = 1798
-                new OrderItemRequest(2L, 3)));  // 3 x 150 = 450
+        stubTwoItemOrder(orderRepository, productRepository);
 
-        OrderResponse response = orderService.createOrder(request);
+        OrderResponse response = orderService.createOrder(twoItemOrder());
 
-        assertThat(response.totalCents()).isEqualTo(2248L);
-        assertThat(response.totalEuros()).isEqualTo(22.48);
+        assertThat(response.totalCents()).isEqualTo(TWO_ITEM_ORDER_TOTAL_CENTS);
+        assertThat(response.totalEuros()).isCloseTo(22.48, EURO_TOLERANCE);
         assertThat(response.customerName()).isEqualTo("Ada");
         assertThat(response.items()).hasSize(2);
-        assertThat(response.items().get(0).lineTotalCents()).isEqualTo(1798L);
+        assertThat(response.items().get(0).lineTotalCents()).isEqualTo(1798L);  // 2 x 899
         assertThat(response.items().get(0).unitPriceCents()).isEqualTo(899L);
-        assertThat(response.items().get(1).lineTotalCents()).isEqualTo(450L);
+        assertThat(response.items().get(1).lineTotalCents()).isEqualTo(450L);   // 3 x 150
     }
 
     @Test
@@ -98,34 +90,34 @@ class OrderServiceTest {
     @Test
     @DisplayName("emits business metrics on a successful order")
     void emitsBusinessMetrics() {
-        stubSaveReturnsArgument();
-        stubProducts(Map.of(1L, pizza));
+        stubSaveReturnsArgument(orderRepository);
+        stubProducts(productRepository, Map.of(PIZZA_ID, pizza()));
         CreateOrderRequest request = new CreateOrderRequest(
-                "Grace", List.of(new OrderItemRequest(1L, 1)));
+                "Grace", List.of(new OrderItemRequest(PIZZA_ID, 1)));
 
         orderService.createOrder(request);
 
         assertThat(orderMetrics.ordersCreatedCount()).isEqualTo(1.0);
         DistributionSummary summary = meterRegistry.get("order.value.euros").summary();
         assertThat(summary.count()).isEqualTo(1L);
-        assertThat(summary.totalAmount()).isEqualTo(8.99);
+        assertThat(summary.totalAmount()).isCloseTo(8.99, EURO_TOLERANCE);
     }
 
     @Test
     @DisplayName("accumulates counter and value summary across multiple orders (delta)")
     void accumulatesAcrossMultipleOrders() {
-        stubSaveReturnsArgument();
-        stubProducts(Map.of(1L, pizza)); // 899 cents = 8.99 EUR each
+        stubSaveReturnsArgument(orderRepository);
+        stubProducts(productRepository, Map.of(PIZZA_ID, pizza())); // 899 cents = 8.99 EUR each
 
-        orderService.createOrder(new CreateOrderRequest("A", List.of(new OrderItemRequest(1L, 1))));
-        orderService.createOrder(new CreateOrderRequest("B", List.of(new OrderItemRequest(1L, 2))));
-        orderService.createOrder(new CreateOrderRequest("C", List.of(new OrderItemRequest(1L, 1))));
+        orderService.createOrder(new CreateOrderRequest("A", List.of(new OrderItemRequest(PIZZA_ID, 1))));
+        orderService.createOrder(new CreateOrderRequest("B", List.of(new OrderItemRequest(PIZZA_ID, 2))));
+        orderService.createOrder(new CreateOrderRequest("C", List.of(new OrderItemRequest(PIZZA_ID, 1))));
 
         assertThat(orderMetrics.ordersCreatedCount()).isEqualTo(3.0);
         DistributionSummary summary = meterRegistry.get("order.value.euros").summary();
         assertThat(summary.count()).isEqualTo(3L);
         // 8.99 + 17.98 + 8.99 = 35.96
-        assertThat(summary.totalAmount()).isEqualTo(35.96);
+        assertThat(summary.totalAmount()).isCloseTo(35.96, EURO_TOLERANCE);
     }
 
     @Test

@@ -1,16 +1,13 @@
 package com.example.foodorder.service;
 
+import static com.example.foodorder.service.OrderFixtures.TWO_ITEM_ORDER_TOTAL_CENTS;
+import static com.example.foodorder.service.OrderFixtures.stubTwoItemOrder;
+import static com.example.foodorder.service.OrderFixtures.twoItemOrder;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.when;
 
-import com.example.foodorder.domain.Order;
-import com.example.foodorder.domain.Product;
 import com.example.foodorder.repository.OrderRepository;
 import com.example.foodorder.repository.ProductRepository;
 import com.example.foodorder.web.dto.CreateOrderRequest;
-import com.example.foodorder.web.dto.OrderItemRequest;
-import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import io.micrometer.observation.Observation;
 import io.micrometer.observation.ObservationRegistry;
 import io.micrometer.tracing.handler.DefaultTracingObservationHandler;
@@ -23,7 +20,6 @@ import io.opentelemetry.sdk.trace.SdkTracerProvider;
 import io.opentelemetry.sdk.trace.data.SpanData;
 import io.opentelemetry.sdk.trace.export.SimpleSpanProcessor;
 import java.util.List;
-import java.util.Optional;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -54,9 +50,6 @@ class OrderTracingTest {
     private ObservationRegistry observationRegistry;
     private OrderService orderService;
 
-    private final Product pizza = new Product("Pizza Margherita", "Classic", 899, "Food");
-    private final Product water = new Product("Sparkling Water", "0.5l", 150, "Drinks");
-
     @BeforeEach
     void setUp() {
         spanExporter = InMemorySpanExporter.create();
@@ -75,9 +68,7 @@ class OrderTracingTest {
         observationRegistry.observationConfig()
                 .observationHandler(new DefaultTracingObservationHandler(micrometerTracer));
 
-        OrderMetrics orderMetrics = new OrderMetrics(new SimpleMeterRegistry());
-        orderService = new OrderService(orderRepository, productRepository, orderMetrics,
-                observationRegistry);
+        orderService = OrderFixtures.orderService(orderRepository, productRepository, observationRegistry);
     }
 
     @AfterEach
@@ -88,12 +79,8 @@ class OrderTracingTest {
     @Test
     @DisplayName("produces an 'orders.create' child span with business attributes")
     void producesOrdersCreateSpan() {
-        when(orderRepository.save(any(Order.class))).thenAnswer(inv -> inv.getArgument(0));
-        when(productRepository.findById(1L)).thenReturn(Optional.of(pizza));
-        when(productRepository.findById(2L)).thenReturn(Optional.of(water));
-        CreateOrderRequest request = new CreateOrderRequest("Ada", List.of(
-                new OrderItemRequest(1L, 2),   // 2 line items -> item_count=2
-                new OrderItemRequest(2L, 3)));  // total 2x899 + 3x150 = 2248 cents
+        stubTwoItemOrder(orderRepository, productRepository);
+        CreateOrderRequest request = twoItemOrder();
 
         // Run the production observation inside a parent span to assert parent-child linkage.
         Observation.createNotStarted("test.parent", observationRegistry)
@@ -110,13 +97,14 @@ class OrderTracingTest {
         assertThat(orderSpan.getAttributes().get(AttributeKey.stringKey("order.item_count")))
                 .isEqualTo("2");
         assertThat(orderSpan.getAttributes().get(AttributeKey.stringKey("order.value_cents")))
-                .isEqualTo("2248");
+                .isEqualTo(Long.toString(TWO_ITEM_ORDER_TOTAL_CENTS));
     }
 
     private static SpanData spanNamed(List<SpanData> spans, String name) {
-        return spans.stream()
-                .filter(s -> s.getName().equals(name))
-                .findFirst()
-                .orElseThrow(() -> new AssertionError("No span named '" + name + "' in " + spans));
+        return assertThat(spans)
+                .as("span named '%s'", name)
+                .filteredOn(s -> s.getName().equals(name))
+                .singleElement()
+                .actual();
     }
 }
