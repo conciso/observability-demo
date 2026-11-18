@@ -1,6 +1,5 @@
-import { Injectable, inject } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Injectable } from '@angular/core';
+import { HttpResourceRef, httpResource } from '@angular/common/http';
 import { Product } from '../models/models';
 
 /**
@@ -9,9 +8,11 @@ import { Product } from '../models/models';
  */
 @Injectable({ providedIn: 'root' })
 export class ProductService {
-  private readonly http = inject(HttpClient);
-
-  getProducts(): Observable<Product[]> {
-    return this.http.get<Product[]>('/api/products');
+  /**
+   * Erzeugt eine Resource fuer den Katalog (Lade-/Fehlerzustand, reload()).
+   * Muss im Injection Context aufgerufen werden, z.B. in einem Feld-Initializer.
+   */
+  productsResource(): HttpResourceRef<Product[]> {
+    return httpResource<Product[]>(() => '/api/products', { defaultValue: [] });
   }
 }

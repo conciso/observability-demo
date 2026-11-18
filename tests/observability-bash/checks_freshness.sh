@@ -21,7 +21,7 @@ check_g3_prom() {
 
 _g3_tempo_fresh() {
   local newest_ns now
-  newest_ns=$(tempo_search '{ resource.service.name = "food-order-backend" }' 20 \
+  newest_ns=$(tempo_search "$(svc_traceql)" 20 \
               | jq -r '[.traces[]?.startTimeUnixNano | tonumber] | max // empty')
   [ -n "$newest_ns" ] || return 1
   now=$(date +%s)

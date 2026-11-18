@@ -24,10 +24,11 @@ import org.springframework.transaction.annotation.Transactional;
  * orders back. Emits the demo's business metrics on every successful order.
  *
  * <p>Order creation is wrapped in an {@link Observation} named {@code orders.create} carrying
- * business attributes ({@code order.item_count}, {@code order.value_cents}). In production the
- * OpenTelemetry Java agent turns this into a span with those attributes and a matching
- * {@code orders.create} timer; it also makes the flow assertable in-JVM (without the agent)
- * via a {@code TestObservationRegistry} or an OTel-SDK tracing bridge.
+ * business attributes ({@code order.item_count}, {@code order.value_cents}). In production it
+ * surfaces only as the {@code orders.create} timer: the application has no Micrometer tracing
+ * bridge on its classpath, and the OpenTelemetry Java agent does not turn observations into
+ * spans. The observation still makes the flow assertable in-JVM via a
+ * {@code TestObservationRegistry} or an OTel-SDK tracing bridge (see {@code OrderTracingTest}).
  *
  * <p>Entities are mapped to DTOs inside the transactional methods so that lazily loaded
  * associations (order items) are always initialized before leaving the persistence context.

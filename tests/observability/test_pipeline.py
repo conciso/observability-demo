@@ -8,7 +8,7 @@ import subprocess
 import pytest
 
 TELEMETRYGEN_IMAGE = (
-    "ghcr.io/open-telemetry/opentelemetry-collector-contrib/telemetrygen"
+    "ghcr.io/open-telemetry/opentelemetry-collector-contrib/telemetrygen:v0.165.0"
 )
 
 

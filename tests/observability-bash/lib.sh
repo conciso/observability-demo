@@ -25,7 +25,7 @@ GRAFANA_URL="${GRAFANA_URL%/}"
 
 HTTP_TIMEOUT=10
 SVC="food-order-backend"
-TELEMETRYGEN_IMAGE="ghcr.io/open-telemetry/opentelemetry-collector-contrib/telemetrygen"
+TELEMETRYGEN_IMAGE="ghcr.io/open-telemetry/opentelemetry-collector-contrib/telemetrygen:v0.165.0"
 
 # --- Ergebnis-Zaehler (analog validate-configs.sh) --------------------------
 PASS_N=0
@@ -113,6 +113,17 @@ tempo_search() { # <traceql> [limit] -> rohes JSON (explizites Fenster now-900..
 }
 tempo_count() { tempo_search "$1" "${2:-5}" | jq -r '.traces // [] | length'; }
 
+# TraceQL-Selektor fuer den Service $SVC, optional mit weiterer Bedingung.
+#   svc_traceql                          -> { resource.service.name = "<SVC>" }
+#   svc_traceql 'name="POST /api/orders"' -> { resource.service.name = "<SVC>" && name="POST /api/orders" }
+svc_traceql() { # [<bedingung>]
+  if [ -n "${1:-}" ]; then
+    printf '{ resource.service.name = "%s" && %s }' "$SVC" "$1"
+  else
+    printf '{ resource.service.name = "%s" }' "$SVC"
+  fi
+}
+
 # --- Actuator-Text -----------------------------------------------------------
 actuator_text() { curl -s --max-time "$HTTP_TIMEOUT" "$BACKEND_URL/actuator/prometheus"; }
 
@@ -124,12 +135,17 @@ actuator_orders_total() {
 }
 
 # --- Bestell-Helfer ----------------------------------------------------------
+# Schickt eine Bestellung mit einer Position und gibt den HTTP-Statuscode aus.
+post_order() { # <customer> <productId> <quantity>
+  curl -s -o /dev/null -w '%{http_code}' --max-time "$HTTP_TIMEOUT" \
+    -X POST "$BACKEND_URL/api/orders" -H 'Content-Type: application/json' \
+    -d "{\"customerName\":\"$1\",\"items\":[{\"productId\":$2,\"quantity\":$3}]}"
+}
+
 place_orders() { # <customer> <count>
   local c="$1" cnt="${2:-1}" i code
   for (( i=0; i<cnt; i++ )); do
-    code=$(curl -s -o /dev/null -w '%{http_code}' --max-time "$HTTP_TIMEOUT" \
-      -X POST "$BACKEND_URL/api/orders" -H 'Content-Type: application/json' \
-      -d "{\"customerName\":\"$c\",\"items\":[{\"productId\":1,\"quantity\":2}]}")
+    code=$(post_order "$c" 1 2)
     [ "$code" = "201" ] || return 1
   done
   return 0

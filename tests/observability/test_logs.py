@@ -52,7 +52,7 @@ def test_c3_trace_und_span_id_labels(traffic, loki_query_range, until):
 @pytest.mark.smoke
 def test_c4_resource_labels(traffic, loki_query_range, until):
     """C4: Stream-Labels enthalten Resource-Attribute."""
-    expected = ("service_namespace", "deployment_environment", "service_version")
+    expected = ("service_namespace", "deployment_environment_name", "service_version")
 
     def check():
         streams = loki_query_range(f'{{service_name="{SVC}"}}', limit=10)

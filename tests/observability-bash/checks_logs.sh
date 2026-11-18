@@ -41,12 +41,12 @@ check_c3() {
 _c4_ok() {
   loki_query_range "{service_name=\"$SVC\"}" 10 \
     | jq -e '[.data.result[] | select((.stream.service_namespace // "") != ""
-            and (.stream.deployment_environment // "") != ""
+            and (.stream.deployment_environment_name // "") != ""
             and (.stream.service_version // "") != "")] | length >= 1' >/dev/null
 }
 check_c4() {
   if retry 30 3 _c4_ok; then
-    pass "C4: Resource-Labels (service_namespace, deployment_environment, service_version)"
+    pass "C4: Resource-Labels (service_namespace, deployment_environment_name, service_version)"
   else
     fail "C4: Resource-Labels fehlen/leer"
   fi

@@ -10,6 +10,8 @@ import {
 import { FormsModule } from '@angular/forms';
 import { CartService } from '../../services/cart.service';
 import { EuroPipe } from '../../pipes/euro.pipe';
+import { CatalogPipe } from '../../i18n/catalog.pipe';
+import { TranslationService } from '../../i18n/translation.service';
 
 /**
  * Warenkorb-Ansicht: Positionen anzeigen, Mengen aendern, entfernen und
@@ -18,14 +20,14 @@ import { EuroPipe } from '../../pipes/euro.pipe';
  */
 @Component({
   selector: 'app-cart',
-  standalone: true,
-  imports: [FormsModule, EuroPipe],
+  imports: [FormsModule, EuroPipe, CatalogPipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './cart.component.html',
   styleUrl: './cart.component.css',
 })
 export class CartComponent {
   private readonly cart = inject(CartService);
+  protected readonly i18n = inject(TranslationService);
 
   /** Laeuft gerade ein POST /api/orders? (von aussen gesteuert) */
   readonly submitting = input(false);

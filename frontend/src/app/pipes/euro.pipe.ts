@@ -1,18 +1,26 @@
-import { Pipe, PipeTransform } from '@angular/core';
+import { Pipe, PipeTransform, inject } from '@angular/core';
+import { TranslationService } from '../i18n/translation.service';
 
 /**
- * Formatiert einen Cent-Integer (z.B. 349) als Euro-Betrag ("3,49 EUR").
- * Nutzt Intl.NumberFormat mit de-DE-Locale.
+ * Formatiert einen Cent-Integer (z.B. 349) als Euro-Betrag in der aktuellen
+ * UI-Sprache: "3,49 €" (de-DE) bzw. "€3.49" (en-US).
  */
-@Pipe({ name: 'euro' })
+@Pipe({ name: 'euro', pure: false })
 export class EuroPipe implements PipeTransform {
-  private static readonly formatter = new Intl.NumberFormat('de-DE', {
-    style: 'currency',
-    currency: 'EUR',
-  });
+  private readonly i18n = inject(TranslationService);
+  private static readonly formatters = new Map<string, Intl.NumberFormat>();
 
   transform(cents: number | null | undefined): string {
     const value = (cents ?? 0) / 100;
-    return EuroPipe.formatter.format(value);
+    return EuroPipe.formatter(this.i18n.locale()).format(value);
+  }
+
+  private static formatter(locale: string): Intl.NumberFormat {
+    let formatter = EuroPipe.formatters.get(locale);
+    if (!formatter) {
+      formatter = new Intl.NumberFormat(locale, { style: 'currency', currency: 'EUR' });
+      EuroPipe.formatters.set(locale, formatter);
+    }
+    return formatter;
   }
 }

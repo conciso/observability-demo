@@ -4,17 +4,17 @@
 _tempo_ge1() { [ "$(tempo_count "$1" 5)" -ge 1 ]; }
 
 check_b1() {
-  if retry 30 3 _tempo_ge1 '{ resource.service.name = "food-order-backend" }'; then
-    pass "B1: Traces fuer food-order-backend vorhanden"
+  if retry 30 3 _tempo_ge1 "$(svc_traceql)"; then
+    pass "B1: Traces fuer $SVC vorhanden"
   else
-    fail "B1: keine Traces fuer food-order-backend"
+    fail "B1: keine Traces fuer $SVC"
   fi
 }
 
 check_b2() {
   local ok=1 name
   for name in "POST /api/orders" "GET /api/products"; do
-    if ! retry 30 3 _tempo_ge1 "{ resource.service.name=\"food-order-backend\" && name=\"$name\" }"; then
+    if ! retry 30 3 _tempo_ge1 "$(svc_traceql "name=\"$name\"")"; then
       ok=0; fail "B2: kein Trace mit Span-Name '$name'"
     fi
   done
@@ -22,7 +22,7 @@ check_b2() {
 }
 
 _b5_ok() {
-  tempo_search '{ resource.service.name = "food-order-backend" }' 5 | jq -e '
+  tempo_search "$(svc_traceql)" 5 | jq -e '
     (.traces // []) as $t
     | ($t | length >= 1)
       and ($t | all(
@@ -42,23 +42,23 @@ check_b5() {
 
 # --- B4: Span-/Resource-Attribute -------------------------------------------
 _b4_resource_filters() {
-  _tempo_ge1 '{ resource.service.name = "food-order-backend" }' \
+  _tempo_ge1 "$(svc_traceql)" \
     && _tempo_ge1 '{ resource.service.namespace = "food-order" }' \
-    && _tempo_ge1 '{ resource.deployment.environment = "demo" }'
+    && _tempo_ge1 '{ resource.deployment.environment.name = "demo" }'
 }
 _b4_http_filters() {
-  _tempo_ge1 '{ resource.service.name="food-order-backend" && span.http.request.method = "POST" }' \
-    && _tempo_ge1 '{ resource.service.name="food-order-backend" && span.http.response.status_code = 201 }'
+  _tempo_ge1 "$(svc_traceql 'span.http.request.method = "POST"')" \
+    && _tempo_ge1 "$(svc_traceql 'span.http.response.status_code = 201')"
 }
 _b4_deep_ok() {
   local tid
-  tid=$(tempo_search '{ resource.service.name="food-order-backend" && name="POST /api/orders" }' 1 \
+  tid=$(tempo_search "$(svc_traceql 'name="POST /api/orders"')" 1 \
         | jq -r '.traces[0].traceID // empty')
   [ -n "$tid" ] || return 1
   curl -s --max-time "$HTTP_TIMEOUT" "$TEMPO_URL/api/traces/$tid" | jq -e '
     ([.batches[].resource.attributes[].key]) as $rk
     | ([.batches[].scopeSpans[].spans[].attributes[]?.key]) as $sk
-    | ((["service.name","service.namespace","deployment.environment","telemetry.sdk.language"] - $rk) | length == 0)
+    | ((["service.name","service.namespace","deployment.environment.name","telemetry.sdk.language"] - $rk) | length == 0)
       and (($sk | index("http.request.method")) != null)
       and (($sk | index("http.response.status_code")) != null)
   ' >/dev/null
@@ -84,7 +84,7 @@ check_b4_business() {
 
 # --- B3: Trace-Tiefe (HTTP + DB) --------------------------------------------
 _b3_get_post_tid() {
-  B3_TID=$(tempo_search '{ resource.service.name="food-order-backend" && name="POST /api/orders" }' 1 \
+  B3_TID=$(tempo_search "$(svc_traceql 'name="POST /api/orders"')" 1 \
            | jq -r '.traces[0].traceID // empty')
   [ -n "$B3_TID" ]
 }

@@ -43,7 +43,7 @@ Aufwand (aus dem Plan übernommen): 🟢 billig/schnell · 🟡 mittel · 🔴 a
 | B1 | Traces des Service vorhanden | Tempo-Search `{ resource.service.name="food-order-backend" }` → ≥1 Trace | 🟡 | ✅ | BB `test_b1_traces_vorhanden` / `check_b1` |
 | B2 | Erwartete Span-Namen | Traces für `POST /api/orders` **und** `GET /api/products` existieren | 🟡 | ✅ | BB `test_b2_span_namen_vorhanden` / `check_b2` |
 | B3 | **Trace-Tiefe** (Auto-Instrumentierung greift) | Order-Trace hat >1 Span (HTTP-Server + JPA/DB-Span) | 🟡 | ✅ | BB `test_b3_trace_tiefe_http_und_db` / `check_b3` |
-| B4 | Ressourcen-/Span-Attribute (Semantic Conventions) | Trace/Span trägt `service.namespace`, `deployment.environment`, `http.*` | 🟡 | ✅ | BB `test_b4_span_und_resource_attribute` / `check_b4` · JUnit `OrderTracingTest` (Span-Attribute + Parent-Child via OTel-SDK) |
+| B4 | Ressourcen-/Span-Attribute (Semantic Conventions) | Trace/Span trägt `service.namespace`, `deployment.environment.name`, `http.*` | 🟡 | ✅ | BB `test_b4_span_und_resource_attribute` / `check_b4` · JUnit `OrderTracingTest` (Span-Attribute + Parent-Child via OTel-SDK) |
 | B5 | Latenz-Plausibilität | `durationMs > 0` und < sinnvolle Obergrenze | 🟢 | ✅ | BB `test_b5_trace_dauer_plausibel` / `check_b5` |
 
 > **Bewusst übersprungen, nicht vergessen:** `test_b4_business_attribute_order_item_count` /
@@ -61,7 +61,7 @@ Aufwand (aus dem Plan übernommen): 🟢 billig/schnell · 🟡 mittel · 🔴 a
 | C1 | Logs des Service vorhanden | Loki-Label `service_name` enthält `food-order-backend` | 🟢 | ✅ | BB `test_c1_service_name_label` / `check_c1` |
 | C2 | Fachliche Log-Zeile | nach Bestellung: Log „Created order id=… cents" vorhanden | 🟡 | ✅ | BB `test_c2_created_order_logzeile` / `check_c2` |
 | C3 | **trace_id/span_id am Log** | Log-Streams tragen nicht-leere `trace_id`/`span_id` (Structured Metadata) | 🟡 | ✅ | BB `test_c3_trace_und_span_id_labels` / `check_c3` |
-| C4 | Ressourcen-Attribute als Labels | `service_namespace`, `deployment_environment`, `service_version` vorhanden | 🟢 | ✅ | BB `test_c4_resource_labels` / `check_c4` |
+| C4 | Ressourcen-Attribute als Labels | `service_namespace`, `deployment_environment_name`, `service_version` vorhanden | 🟢 | ✅ | BB `test_c4_resource_labels` / `check_c4` |
 | C5 | Level-Mapping | `severity_text`/`detected_level` = INFO/WARN korrekt | 🟢 | ✅ | BB `test_c5_severity_vorhanden` / `check_c5` |
 
 ## D. Korrelation (Kronjuwel)
