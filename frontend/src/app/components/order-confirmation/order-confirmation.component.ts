@@ -8,7 +8,6 @@ import { EuroPipe } from '../../pipes/euro.pipe';
  */
 @Component({
   selector: 'app-order-confirmation',
-  standalone: true,
   imports: [EuroPipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './order-confirmation.component.html',

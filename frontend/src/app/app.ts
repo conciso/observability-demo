@@ -13,47 +13,22 @@ import { Product, OrderResponse } from './models/models';
  */
 @Component({
   selector: 'app-root',
-  standalone: true,
   imports: [ProductListComponent, CartComponent, OrderConfirmationComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './app.html',
   styleUrl: './app.css',
 })
 export class App {
-  private readonly productService = inject(ProductService);
   private readonly orderService = inject(OrderService);
   private readonly cart = inject(CartService);
 
-  // --- Produktkatalog ---
-  readonly products = signal<Product[]>([]);
-  readonly productsLoading = signal(false);
-  readonly productsError = signal<string | null>(null);
+  // --- Produktkatalog (Lade-/Fehlerzustand und Retry liefert die Resource) ---
+  readonly products = inject(ProductService).productsResource();
 
   // --- Bestellung ---
   readonly submitting = signal(false);
   readonly orderError = signal<string | null>(null);
   readonly confirmedOrder = signal<OrderResponse | null>(null);
-
-  constructor() {
-    this.loadProducts();
-  }
-
-  loadProducts(): void {
-    this.productsLoading.set(true);
-    this.productsError.set(null);
-    this.productService.getProducts().subscribe({
-      next: (products) => {
-        this.products.set(products);
-        this.productsLoading.set(false);
-      },
-      error: () => {
-        this.productsError.set(
-          'Produkte konnten nicht geladen werden. Bitte spaeter erneut versuchen.',
-        );
-        this.productsLoading.set(false);
-      },
-    });
-  }
 
   addToCart(product: Product): void {
     this.cart.add(product);

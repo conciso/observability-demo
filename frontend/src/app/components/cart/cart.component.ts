@@ -18,7 +18,6 @@ import { EuroPipe } from '../../pipes/euro.pipe';
  */
 @Component({
   selector: 'app-cart',
-  standalone: true,
   imports: [FormsModule, EuroPipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './cart.component.html',

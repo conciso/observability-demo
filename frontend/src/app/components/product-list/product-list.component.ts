@@ -8,7 +8,6 @@ import { EuroPipe } from '../../pipes/euro.pipe';
  */
 @Component({
   selector: 'app-product-list',
-  standalone: true,
   imports: [EuroPipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './product-list.component.html',

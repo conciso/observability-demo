@@ -15,17 +15,17 @@
     <section class="panel products" aria-label="Produkte">
       <h2>Produkte</h2>
 
-      @if (productsLoading()) {
+      @if (products.isLoading()) {
         <p class="status" data-testid="products-loading">Produkte werden geladen…</p>
-      } @else if (productsError(); as error) {
+      } @else if (products.error()) {
         <div class="alert error" role="alert" data-testid="products-error">
-          <span>{{ error }}</span>
-          <button type="button" class="btn" (click)="loadProducts()">
+          <span>Produkte konnten nicht geladen werden. Bitte spaeter erneut versuchen.</span>
+          <button type="button" class="btn" (click)="products.reload()">
             Erneut versuchen
           </button>
         </div>
       } @else {
-        <app-product-list [products]="products()" (add)="addToCart($event)" />
+        <app-product-list [products]="products.value()" (add)="addToCart($event)" />
       }
     </section>
 
