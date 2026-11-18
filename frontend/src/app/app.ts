@@ -5,7 +5,9 @@ import { OrderConfirmationComponent } from './components/order-confirmation/orde
 import { ProductService } from './services/product.service';
 import { OrderService } from './services/order.service';
 import { CartService } from './services/cart.service';
+import { TranslationService } from './i18n/translation.service';
 import { Product, OrderResponse } from './models/models';
+import { TextKey } from './i18n/translations';
 
 /**
  * Container-Komponente: laedt Produkte (Lade-/Fehlerzustand), orchestriert
@@ -21,13 +23,14 @@ import { Product, OrderResponse } from './models/models';
 export class App {
   private readonly orderService = inject(OrderService);
   private readonly cart = inject(CartService);
+  protected readonly i18n = inject(TranslationService);
 
   // --- Produktkatalog (Lade-/Fehlerzustand und Retry liefert die Resource) ---
   readonly products = inject(ProductService).productsResource();
 
   // --- Bestellung ---
   readonly submitting = signal(false);
-  readonly orderError = signal<string | null>(null);
+  readonly orderError = signal<TextKey | null>(null);
   readonly confirmedOrder = signal<OrderResponse | null>(null);
 
   addToCart(product: Product): void {
@@ -46,9 +49,7 @@ export class App {
           this.submitting.set(false);
         },
         error: () => {
-          this.orderError.set(
-            'Die Bestellung konnte nicht gesendet werden. Bitte erneut versuchen.',
-          );
+          this.orderError.set('orderSendError');
           this.submitting.set(false);
         },
       });

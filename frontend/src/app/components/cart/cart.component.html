@@ -1,11 +1,11 @@
 @if (isEmpty()) {
-  <p class="empty" data-testid="cart-empty">Der Warenkorb ist leer.</p>
+  <p class="empty" data-testid="cart-empty">{{ i18n.messages().cartEmpty }}</p>
 } @else {
   <ul class="cart-items" data-testid="cart-items">
     @for (item of items(); track item.product.id) {
       <li class="cart-item">
         <div class="cart-item-info">
-          <span class="cart-item-name">{{ item.product.name }}</span>
+          <span class="cart-item-name">{{ item.product.name | catalog }}</span>
           <span class="cart-item-price">
             {{ item.product.priceCents | euro }}
           </span>
@@ -14,7 +14,7 @@
           <button
             type="button"
             class="qty-btn"
-            aria-label="Menge verringern"
+            [attr.aria-label]="i18n.messages().decreaseQuantity"
             data-testid="qty-decrement"
             (click)="decrement(item.product.id)"
           >
@@ -24,7 +24,7 @@
           <button
             type="button"
             class="qty-btn"
-            aria-label="Menge erhoehen"
+            [attr.aria-label]="i18n.messages().increaseQuantity"
             data-testid="qty-increment"
             (click)="increment(item.product.id)"
           >
@@ -36,11 +36,11 @@
           <button
             type="button"
             class="remove-btn"
-            aria-label="Position entfernen"
+            [attr.aria-label]="i18n.messages().removeItem"
             data-testid="cart-remove"
             (click)="remove(item.product.id)"
           >
-            Entfernen
+            {{ i18n.messages().remove }}
           </button>
         </div>
       </li>
@@ -48,17 +48,17 @@
   </ul>
 
   <div class="cart-summary">
-    <span>Zwischensumme ({{ totalQuantity() }} Artikel)</span>
+    <span>{{ i18n.tCount('subtotal', totalQuantity()) }}</span>
     <strong data-testid="cart-subtotal">{{ subtotalCents() | euro }}</strong>
   </div>
 
   <form class="checkout" (ngSubmit)="submit()">
     <label class="field">
-      <span>Name</span>
+      <span>{{ i18n.messages().name }}</span>
       <input
         type="text"
         name="customerName"
-        placeholder="Ihr Name"
+        [placeholder]="i18n.messages().namePlaceholder"
         autocomplete="name"
         data-testid="customer-name"
         [ngModel]="customerName()"
@@ -73,9 +73,9 @@
       [disabled]="!canSubmit() || submitting()"
     >
       @if (submitting()) {
-        Bestellung wird gesendet…
+        {{ i18n.messages().submittingOrder }}
       } @else {
-        Bestellung absenden
+        {{ i18n.messages().submitOrder }}
       }
     </button>
   </form>

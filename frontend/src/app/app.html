@@ -1,27 +1,40 @@
 <header class="app-header">
-  <h1>Lebensmittel-Bestellung</h1>
-  <p class="subtitle">OpenTelemetry-Demo</p>
+  <div>
+    <h1>{{ i18n.messages().appTitle }}</h1>
+    <p class="subtitle">{{ i18n.messages().appSubtitle }}</p>
+  </div>
+  <label class="lang-switch">
+    <span>{{ i18n.messages().languageLabel }}</span>
+    <select
+      data-testid="lang-select"
+      [value]="i18n.lang()"
+      (change)="i18n.setLang($any($event.target).value)"
+    >
+      <option value="de">Deutsch</option>
+      <option value="en-US">English (US)</option>
+    </select>
+  </label>
 </header>
 
 <main class="layout">
   @if (confirmedOrder(); as order) {
-    <section class="panel" aria-label="Bestellbestaetigung">
+    <section class="panel" [attr.aria-label]="i18n.messages().orderConfirmationLabel">
       <app-order-confirmation
         [order]="order"
         (newOrder)="startNewOrder()"
       />
     </section>
   } @else {
-    <section class="panel products" aria-label="Produkte">
-      <h2>Produkte</h2>
+    <section class="panel products" [attr.aria-label]="i18n.messages().products">
+      <h2>{{ i18n.messages().products }}</h2>
 
       @if (products.isLoading()) {
-        <p class="status" data-testid="products-loading">Produkte werden geladen…</p>
+        <p class="status" data-testid="products-loading">{{ i18n.messages().productsLoading }}</p>
       } @else if (products.error()) {
         <div class="alert error" role="alert" data-testid="products-error">
-          <span>Produkte konnten nicht geladen werden. Bitte spaeter erneut versuchen.</span>
+          <span>{{ i18n.messages().productsLoadError }}</span>
           <button type="button" class="btn" (click)="products.reload()">
-            Erneut versuchen
+            {{ i18n.messages().retry }}
           </button>
         </div>
       } @else {
@@ -29,12 +42,12 @@
       }
     </section>
 
-    <aside class="panel cart" aria-label="Warenkorb">
-      <h2>Warenkorb</h2>
+    <aside class="panel cart" [attr.aria-label]="i18n.messages().cart">
+      <h2>{{ i18n.messages().cart }}</h2>
 
       @if (orderError(); as error) {
         <div class="alert error" role="alert" data-testid="order-error">
-          {{ error }}
+          {{ i18n.t(error) }}
         </div>
       }
 

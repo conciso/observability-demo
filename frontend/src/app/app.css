@@ -6,7 +6,26 @@
 }
 
 .app-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
   margin-bottom: 1.5rem;
+}
+
+.lang-switch {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  color: #666;
+}
+
+.lang-switch select {
+  padding: 0.3rem 0.5rem;
+  border: 1px solid var(--border, #e2e2e2);
+  border-radius: 6px;
+  font: inherit;
 }
 
 .app-header h1 {
